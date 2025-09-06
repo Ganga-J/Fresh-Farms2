@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Custom Modal Message Box -->
+    <div id="customModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <p id="modalMessage"></p>
+        </div>
+    </div>
+
+<div class="main-container">
+    <div>
+        <h1 class="form-heading">Create Account</h1>
+        <p class="form-subheading">Join our community of farmers and customers</p>
+    </div>
+
+    <form id="signupForm">
+        <div id="signupStatusMessage" class="status-message" style="display: none;"></div>
+        
+        <div class="form-field">
+            <label for="userType" class="form-label">I am a...</label>
+            <select id="userType" name="userType" class="form-input">
+                <option value="customer">Customer</option>
+                <option value="farmer">Farmer</option>
+            </select>
+        </div>
+
+        <div class="form-field">
+            <label for="signup-name" class="form-label">Full Name</label>
+            <input type="text" id="signup-name" name="name" required placeholder="Your Name" class="form-input">
+        </div>
+
+        <div class="form-field">
+            <label for="signup-email" class="form-label">Email address</label>
+            <input type="email" id="signup-email" name="email" required placeholder="you@example.com" class="form-input">
+        </div>
+
+        <div class="form-field">
+            <label for="signup-password" class="form-label">Password</label>
+            <input type="password" id="signup-password" name="password" required placeholder="••••••••" class="form-input">
+        </div>
+        
+        <button type="submit" class="form-submit">Create Account</button>
+    </form>
+
+    <div class="text-center text-sm text-gray-500 mt-2">
+        Already have an account? <a href="index.html" class="form-link">Sign In</a>
+    </div>
+</div>
+
+<script>
+    const signupForm = document.getElementById('signupForm');
+    const signupStatusMessage = document.getElementById('signupStatusMessage');
+    const customModal = document.getElementById('customModal');
+    const modalMessage = document.getElementById('modalMessage');
+    const closeButton = document.querySelector('.close-button');
+
+    // Function to show the custom modal
+    function showCustomModal(message) {
+        modalMessage.textContent = message;
+        customModal.style.display = 'block';
+    }
+
+    // Close the modal when the close button is clicked
+    closeButton.addEventListener('click', () => {
+        customModal.style.display = 'none';
+    });
+
+    // Close the modal when the user clicks outside of it
+    window.addEventListener('click', (event) => {
+        if (event.target === customModal) {
+            customModal.style.display = 'none';
+        }
+    });
+
+    // Function to show messages below the form
+    function showMessage(element, message, type) {
+        element.textContent = message;
+        element.className = `status-message ${type}`;
+        element.style.display = 'block';
+        setTimeout(() => {
+            element.style.display = 'none';
+        }, 5000);
+    }
+    
+    // Handle Signup
+    signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('signup-name').value;
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
+        const userType = document.getElementById('userType').value;
+
+        try {
+            const response = await fetch('http://localhost:5000/signup', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, email, password, userType }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Signup was successful
+                showMessage(signupStatusMessage, data.message + ' Redirecting to login...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+            } else {
+                // Signup failed, show error message from the backend
+                showMessage(signupStatusMessage, data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Network or server error:', error);
+            showMessage(signupStatusMessage, 'Failed to connect to the server. Please check the backend.', 'error');
+        }
+    });
+</script>
+</body>
+</html>

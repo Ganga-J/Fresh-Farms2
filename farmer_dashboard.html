@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmer Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .dashboard-container {
+            max-width: 60rem;
+            width: 100%;
+            padding: 2.5rem;
+        }
+        .product-card {
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* Modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+        }
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-8">
+
+    <!-- Custom Modal Message Box -->
+    <div id="customModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <p id="modalMessage"></p>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="closeEditModal">&times;</span>
+            <h2 class="text-2xl font-bold mb-4">Edit Product</h2>
+            <form id="editProductForm">
+                <input type="hidden" id="edit-product-id">
+                <div class="form-field">
+                    <label for="edit-product-name" class="form-label">Product Name</label>
+                    <input type="text" id="edit-product-name" required class="form-input">
+                </div>
+                <div class="form-field">
+                    <label for="edit-product-description" class="form-label">Description</label>
+                    <textarea id="edit-product-description" rows="3" class="form-input"></textarea>
+                </div>
+                <div class="form-field">
+                    <label for="edit-product-price" class="form-label">Price</label>
+                    <input type="number" id="edit-product-price" step="0.01" required class="form-input">
+                </div>
+                <div class="form-field">
+                    <label for="edit-product-unit" class="form-label">Unit</label>
+                    <input type="text" id="edit-product-unit" required class="form-input">
+                </div>
+                <div class="form-field">
+                    <label for="edit-product-category" class="form-label">Category</label>
+                    <input type="text" id="edit-product-category" required class="form-input">
+                </div>
+                <div class="form-field">
+                    <label for="edit-product-image-url" class="form-label">Image URL</label>
+                    <input type="url" id="edit-product-image-url" class="form-input">
+                </div>
+                <button type="submit" class="form-submit">Update Product</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="dashboard-container bg-white rounded-2xl shadow-lg border border-gray-200">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Farmer Dashboard</h1>
+            <div class="flex space-x-4 mt-4 md:mt-0">
+                <button id="addProductButton" class="bg-green-500 text-white font-semibold py-2 px-6 rounded-full hover:bg-green-600 transition duration-300">
+                    Add New Product
+                </button>
+                <button id="signOutButton" class="bg-red-500 text-white font-semibold py-2 px-6 rounded-full hover:bg-red-600 transition duration-300">
+                    Sign Out
+                </button>
+            </div>
+        </div>
+
+        <p id="welcomeMessage" class="text-lg text-gray-600 mb-8 text-center"></p>
+
+        <!-- Form for adding a new product -->
+        <form id="addProductForm" class="hidden bg-gray-100 p-6 rounded-xl shadow-inner mb-8">
+            <h2 class="text-2xl font-bold mb-4">Add a New Product</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="form-field">
+                    <label for="product-name" class="form-label">Product Name</label>
+                    <input type="text" id="product-name" name="name" required class="form-input">
+                </div>
+                <div class="form-field">
+                    <label for="product-category" class="form-label">Category</label>
+                    <input type="text" id="product-category" name="category" required class="form-input">
+                </div>
+                <div class="form-field col-span-1 md:col-span-2">
+                    <label for="product-description" class="form-label">Description</label>
+                    <textarea id="product-description" name="description" rows="3" class="form-input"></textarea>
+                </div>
+                <div class="form-field">
+                    <label for="product-price" class="form-label">Price</label>
+                    <input type="number" id="product-price" name="price" step="0.01" required class="form-input">
+                </div>
+                <div class="form-field">
+                    <label for="product-unit" class="form-label">Unit (e.g., kg, dozen)</label>
+                    <input type="text" id="product-unit" name="unit" required class="form-input">
+                </div>
+                <div class="form-field col-span-1 md:col-span-2">
+                    <label for="product-image-url" class="form-label">Image URL</label>
+                    <input type="url" id="product-image-url" name="image_url" class="form-input">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-4 mt-6">
+                <button type="button" id="cancelAddProductButton" class="bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-full hover:bg-gray-400 transition duration-300">
+                    Cancel
+                </button>
+                <button type="submit" class="form-submit">Add Product</button>
+            </div>
+        </form>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="productGrid">
+            <!-- Product cards will be inserted here by JavaScript -->
+        </div>
+
+        <p id="loadingMessage" class="text-center text-gray-500 mt-8">Loading products...</p>
+    </div>
+
+    <script>
+        const addProductButton = document.getElementById('addProductButton');
+        const addProductForm = document.getElementById('addProductForm');
+        const cancelAddProductButton = document.getElementById('cancelAddProductButton');
+        const productGrid = document.getElementById('productGrid');
+        const addProductFormElement = document.getElementById('addProductForm');
+        const signOutButton = document.getElementById('signOutButton');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const editModal = document.getElementById('editModal');
+        const closeEditModal = document.getElementById('closeEditModal');
+        const editProductForm = document.getElementById('editProductForm');
+        const customModal = document.getElementById('customModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const closeButton = document.querySelector('.close-button');
+
+        // Function to show the custom modal
+        function showCustomModal(message) {
+            modalMessage.textContent = message;
+            customModal.style.display = 'block';
+        }
+
+        // Close the modal when the close button is clicked
+        closeButton.addEventListener('click', () => {
+            customModal.style.display = 'none';
+        });
+
+        // Close the modal when the user clicks outside of it
+        window.addEventListener('click', (event) => {
+            if (event.target === customModal) {
+                customModal.style.display = 'none';
+            }
+        });
+
+        // Check for logged-in user
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser || currentUser.userType !== 'farmer') {
+            window.location.href = 'index.html';
+        } else {
+            welcomeMessage.textContent = `Welcome back, ${currentUser.name}! Manage your products here.`;
+        }
+
+        // Show/hide add product form
+        addProductButton.addEventListener('click', () => {
+            addProductForm.classList.toggle('hidden');
+        });
+
+        cancelAddProductButton.addEventListener('click', () => {
+            addProductForm.classList.add('hidden');
+            addProductFormElement.reset();
+        });
+
+        // Function to create a product card element
+        function createProductCard(product) {
+            const productCard = document.createElement('div');
+            productCard.className = 'product-card bg-white p-6 rounded-2xl shadow-md flex flex-col items-center text-center';
+            productCard.dataset.id = product.id;
+            productCard.innerHTML = `
+                <img src="${product.image_url || 'https://placehold.co/400x400/E5E7EB/4B5563?text=No+Image'}" alt="${product.name}" class="w-full h-40 object-cover rounded-lg mb-4">
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">${product.name}</h3>
+                <p class="text-green-600 text-lg font-bold mb-1">$${product.price.toFixed(2)} / ${product.unit}</p>
+                <div class="flex space-x-2 mt-4">
+                    <button class="bg-blue-500 text-white py-2 px-4 rounded-full text-sm font-semibold hover:bg-blue-600 transition duration-300 edit-btn">Edit</button>
+                    <button class="bg-red-500 text-white py-2 px-4 rounded-full text-sm font-semibold hover:bg-red-600 transition duration-300 delete-btn">Delete</button>
+                </div>
+            `;
+            return productCard;
+        }
+
+        // Fetch and display products for the current farmer
+        async function fetchMyProducts() {
+            loadingMessage.style.display = 'block';
+            try {
+                const response = await fetch(`http://localhost:5000/products/${currentUser.id}`);
+                const products = await response.json();
+                
+                loadingMessage.style.display = 'none';
+                productGrid.innerHTML = ''; // Clear existing products
+                
+                if (response.ok && products.length > 0) {
+                    products.forEach(product => {
+                        productGrid.appendChild(createProductCard(product));
+                    });
+                } else if (response.ok && products.length === 0) {
+                    productGrid.innerHTML = '<p class="text-center text-gray-500 col-span-full mt-8">You have not added any products yet.</p>';
+                } else {
+                    showCustomModal("Failed to load products. Please check the backend server.");
+                }
+
+            } catch (error) {
+                console.error('Failed to fetch products:', error);
+                showCustomModal("Failed to connect to the server. Please check the backend.");
+            }
+        }
+        
+        // Handle adding a new product
+        addProductFormElement.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const newProduct = {
+                name: document.getElementById('product-name').value,
+                description: document.getElementById('product-description').value,
+                price: parseFloat(document.getElementById('product-price').value),
+                unit: document.getElementById('product-unit').value,
+                category: document.getElementById('product-category').value,
+                image_url: document.getElementById('product-image-url').value,
+                farmer_id: currentUser.id
+            };
+
+            try {
+                const response = await fetch('http://localhost:5000/add_product', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newProduct),
+                });
+                
+                const data = await response.json();
+
+                if (response.ok) {
+                    showCustomModal('Product added successfully!');
+                    addProductForm.classList.add('hidden');
+                    addProductFormElement.reset();
+                    fetchMyProducts(); // Refresh the list
+                } else {
+                    showCustomModal(`Failed to add product: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Network or server error:', error);
+                showCustomModal('Failed to connect to the server. Please check the backend.');
+            }
+        });
+
+        // Handle edit and delete button clicks
+        productGrid.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('edit-btn')) {
+                const productCard = e.target.closest('.product-card');
+                const productId = productCard.dataset.id;
+                
+                // Fetch product details to populate modal
+                try {
+                    const response = await fetch(`http://localhost:5000/products`);
+                    const products = await response.json();
+                    const productToEdit = products.find(p => p.id == productId);
+
+                    if (productToEdit) {
+                        document.getElementById('edit-product-id').value = productToEdit.id;
+                        document.getElementById('edit-product-name').value = productToEdit.name;
+                        document.getElementById('edit-product-description').value = productToEdit.description;
+                        document.getElementById('edit-product-price').value = productToEdit.price;
+                        document.getElementById('edit-product-unit').value = productToEdit.unit;
+                        document.getElementById('edit-product-category').value = productToEdit.category;
+                        document.getElementById('edit-product-image-url').value = productToEdit.image_url;
+                        
+                        editModal.style.display = 'block';
+                    } else {
+                        showCustomModal("Product not found.");
+                    }
+                } catch (error) {
+                    console.error('Error fetching product for edit:', error);
+                    showCustomModal("Failed to load product details for editing.");
+                }
+            } else if (e.target.classList.contains('delete-btn')) {
+                const productId = e.target.closest('.product-card').dataset.id;
+                
+                const confirmed = confirm("Are you sure you want to delete this product?");
+                if (confirmed) {
+                    try {
+                        const response = await fetch(`http://localhost:5000/delete_product/${productId}`, {
+                            method: 'DELETE',
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            showCustomModal('Product deleted successfully!');
+                            fetchMyProducts(); // Refresh the list
+                        } else {
+                            showCustomModal(`Failed to delete product: ${data.message}`);
+                        }
+                    } catch (error) {
+                        console.error('Network or server error:', error);
+                        showCustomModal('Failed to connect to the server. Please check the backend.');
+                    }
+                }
+            }
+        });
+        
+        // Handle edit form submission
+        editProductForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const productId = document.getElementById('edit-product-id').value;
+            const updatedProduct = {
+                name: document.getElementById('edit-product-name').value,
+                description: document.getElementById('edit-product-description').value,
+                price: parseFloat(document.getElementById('edit-product-price').value),
+                unit: document.getElementById('edit-product-unit').value,
+                category: document.getElementById('edit-product-category').value,
+                image_url: document.getElementById('edit-product-image-url').value,
+            };
+
+            try {
+                const response = await fetch(`http://localhost:5000/update_product/${productId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedProduct),
+                });
+                
+                const data = await response.json();
+
+                if (response.ok) {
+                    showCustomModal('Product updated successfully!');
+                    editModal.style.display = 'none';
+                    fetchMyProducts(); // Refresh the list of products
+                } else {
+                    showCustomModal(`Failed to update product: ${data.message}`);
+                }
+            } catch (error) {
+                console.error('Network or server error:', error);
+                showCustomModal('Failed to connect to the server. Please check the backend.');
+            }
+        });
+
+        // Close modal when close button is clicked
+        closeEditModal.addEventListener('click', () => {
+            editModal.style.display = 'none';
+        });
+
+        // Close modal when user clicks outside of it
+        window.addEventListener('click', (e) => {
+            if (e.target === editModal) {
+                editModal.style.display = 'none';
+            }
+        });
+        
+        // Dummy sign out logic
+        signOutButton.addEventListener('click', () => {
+            localStorage.removeItem('currentUser');
+            showCustomModal('Signing you out...');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        });
+
+        // Fetch products when the page loads
+        document.addEventListener('DOMContentLoaded', fetchMyProducts);
+    </script>
+</body>
+</html>

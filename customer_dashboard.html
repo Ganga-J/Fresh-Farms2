@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .dashboard-container {
+            max-width: 60rem;
+            width: 100%;
+            padding: 2.5rem;
+        }
+        .product-card {
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* Custom modal styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+        }
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-8">
+
+    <!-- Custom Modal Message Box -->
+    <div id="customModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <p id="modalMessage"></p>
+        </div>
+    </div>
+
+    <div class="dashboard-container bg-white rounded-2xl shadow-lg border border-gray-200">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Customer Dashboard</h1>
+            <button id="signOutButton" class="bg-red-500 text-white font-semibold py-2 px-6 rounded-full hover:bg-red-600 transition duration-300 mt-4 md:mt-0">
+                Sign Out
+            </button>
+        </div>
+
+        <p id="welcomeMessage" class="text-lg text-gray-600 mb-8 text-center"></p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="productGrid">
+            <!-- Product cards will be inserted here by JavaScript -->
+        </div>
+
+        <p id="loadingMessage" class="text-center text-gray-500 mt-8">Loading products...</p>
+    </div>
+
+    <script>
+        const signOutButton = document.getElementById('signOutButton');
+        const productGrid = document.getElementById('productGrid');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const customModal = document.getElementById('customModal');
+        const modalMessage = document.getElementById('modalMessage');
+        const closeButton = document.querySelector('.close-button');
+
+        // Function to show the custom modal
+        function showCustomModal(message) {
+            modalMessage.textContent = message;
+            customModal.style.display = 'block';
+        }
+
+        // Close the modal when the close button is clicked
+        closeButton.addEventListener('click', () => {
+            customModal.style.display = 'none';
+        });
+
+        // Close the modal when the user clicks outside of it
+        window.addEventListener('click', (event) => {
+            if (event.target === customModal) {
+                customModal.style.display = 'none';
+            }
+        });
+
+        // Check for logged-in user
+        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+        if (!currentUser) {
+            window.location.href = 'index.html';
+        } else {
+            welcomeMessage.textContent = `Welcome, ${currentUser.name}! Here are fresh products from our farmers.`;
+        }
+
+        async function fetchProducts() {
+            loadingMessage.style.display = 'block';
+            try {
+                const response = await fetch('http://localhost:5000/products');
+                const products = await response.json();
+                
+                loadingMessage.style.display = 'none';
+                productGrid.innerHTML = ''; // Clear previous products
+
+                if (response.ok && products.length > 0) {
+                    products.forEach(product => {
+                        const productCard = document.createElement('div');
+                        productCard.className = 'product-card bg-white p-6 rounded-2xl shadow-md flex flex-col items-center text-center';
+                        productCard.innerHTML = `
+                            <img src="${product.image_url || 'https://placehold.co/400x400/E5E7EB/4B5563?text=No+Image'}" alt="${product.name}" class="w-full h-40 object-cover rounded-lg mb-4">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">${product.name}</h3>
+                            <p class="text-green-600 text-lg font-bold mb-1">$${product.price.toFixed(2)} / ${product.unit}</p>
+                            <p class="text-gray-500 text-sm mb-4">by Farmer</p> <!-- Note: Farmer name is not available in the products table in this setup -->
+                            <button class="bg-green-500 text-white font-semibold py-2 px-4 rounded-full w-full hover:bg-green-600 transition duration-300">
+                                Add to Cart
+                            </button>
+                        `;
+                        productGrid.appendChild(productCard);
+                    });
+                } else if (response.ok && products.length === 0) {
+                    productGrid.innerHTML = '<p class="text-center text-gray-500 col-span-full mt-8">No products available yet.</p>';
+                } else {
+                    productGrid.innerHTML = '<p class="text-center text-red-500 col-span-full mt-8">Could not load products. Please check the backend server.</p>';
+                }
+            } catch (error) {
+                console.error('Failed to fetch products:', error);
+                productGrid.innerHTML = '<p class="text-center text-red-500 col-span-full mt-8">Failed to connect to the server. Please check the backend.</p>';
+            }
+        }
+
+        // Dummy sign out logic
+        signOutButton.addEventListener('click', () => {
+            localStorage.removeItem('currentUser');
+            showCustomModal('Signing you out...');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 1000);
+        });
+
+        // Fetch products when the page loads
+        document.addEventListener('DOMContentLoaded', fetchProducts);
+    </script>
+</body>
+</html>
